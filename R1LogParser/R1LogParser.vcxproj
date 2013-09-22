@@ -41,9 +41,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <LibraryPath>\SDKs\poco-1.4.6p2-all\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>\SDKs\poco-1.4.6p2-all\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>\SDKs\boost_1_54_0;\SDKs\poco-1.4.6p2-all\Foundation\include\;\SDKs\poco-1.4.6p2-all\Util\include;\SDKs\poco-1.4.6p2-all\Zip\include\;\SDKs\poco-1.4.6p2-all\Crypto\include\;\SDKs\poco-1.4.6p2-all\Data\include\;\SDKs\poco-1.4.6p2-all\Net\include\;\SDKs\poco-1.4.6p2-all\NetSSL_OpenSSL\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <LibraryPath>\SDKs\poco-1.4.6p2-all\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>\SDKs\poco-1.4.6p2-all\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>\SDKs\boost_1_54_0;\SDKs\poco-1.4.6p2-all\Foundation\include\;\SDKs\poco-1.4.6p2-all\Util\include;\SDKs\poco-1.4.6p2-all\Zip\include\;\SDKs\poco-1.4.6p2-all\Crypto\include\;\SDKs\poco-1.4.6p2-all\Data\include\;\SDKs\poco-1.4.6p2-all\Net\include\;\SDKs\poco-1.4.6p2-all\NetSSL_OpenSSL\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -86,6 +92,16 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="R1LogParser.properties">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">copy %(FullPath) $(OutDir)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Copy configuration file</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">copy %(FullPath) $(OutDir)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Copy configuration file</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)%(Identity);%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
