@@ -13,7 +13,8 @@
 #include <Poco/String.h>
 #include <Poco/StringTokenizer.h>
 
-std::map<std::string, std::string> g_ApduInDesc;
+std::map<std::string, std::string> g_ApduCmdDesc;
+std::map<std::string, std::string> g_ApduRespDesc;
 
 class Trn
 {
@@ -57,12 +58,27 @@ public:
 			if ( is_out_apdu )
 			{
 				m_ApduCmd = Poco::toUpper(apdu);
-				auto t = g_ApduInDesc.find(m_ApduCmd.substr(2, 2));
-				if ( t != g_ApduInDesc.end() )
+				auto t = g_ApduCmdDesc.find(m_ApduCmd.substr(2, 2));
+				if ( t != g_ApduCmdDesc.end() )
 					m_ApduCmdDescr = t->second;
 			}
 			else if ( is_in_apdu )
+			{
 				m_ApduResp = Poco::toUpper(apdu);
+
+				if ( m_ApduResp.size() >= 4 )
+				{
+					auto t = g_ApduRespDesc.find(m_ApduResp.substr(m_ApduResp.size()-4));
+					if ( t != g_ApduRespDesc.end() )
+						m_ApduRespDescr = t->second;
+					else
+					{
+						t = g_ApduRespDesc.find(m_ApduResp.substr(m_ApduResp.size() - 4, 2));
+						if ( t != g_ApduRespDesc.end() )
+							m_ApduRespDescr = t->second;
+					}
+				}
+			}
 		}
 	}
 
@@ -70,6 +86,7 @@ public:
 	std::string const& Apdu() const { return m_ApduCmd; }
 	std::string const& ApduDescr() const { return m_ApduCmdDescr; }
 	std::string const& ApduResp() const { return m_ApduResp; }
+	std::string const& ApduRespDesc() const { return m_ApduRespDescr; }
 	std::chrono::milliseconds GetTrnBegEpoch() const { return m_hBeg + m_mBeg + m_sBeg + m_msBeg; }
 	std::chrono::milliseconds GetTrnEndEpoch() const { return m_hEnd + m_mEnd + m_sEnd + m_msEnd; }
 	long long GetTrnTime() const { return (GetTrnEndEpoch() - GetTrnBegEpoch()).count(); }
@@ -111,6 +128,7 @@ private:
 	std::string m_ApduCmd;
 	std::string m_ApduCmdDescr;
 	std::string m_ApduResp;
+	std::string m_ApduRespDescr;
 };
 
 std::list<Trn> g_Trns;
@@ -166,14 +184,26 @@ int _tmain(int argc, _TCHAR* argv [])
 
 			std::string card_apdu = conf->getString("APDU_IN");
 
-			Poco::StringTokenizer s(card_apdu, ";");
-			for ( auto const& i : s )
+			Poco::StringTokenizer si(card_apdu, ";");
+			for ( auto const& i : si )
 			{
 				Poco::StringTokenizer ss(i, ":");
 
 				if ( ss.count() != 2 )
 					continue;
-				g_ApduInDesc[Poco::toUpper(Poco::trim(ss[0]))] = Poco::trim(ss[1]);
+				g_ApduCmdDesc[Poco::toUpper(Poco::trim(ss[0]))] = Poco::trim(ss[1]);
+			}
+
+			std::string card_apdu_resp = conf->getString("APDU_OUT");
+
+			Poco::StringTokenizer so(card_apdu_resp, ";");
+			for ( auto const& i : so )
+			{
+				Poco::StringTokenizer ss(i, ":");
+
+				if ( ss.count() != 2 )
+					continue;
+				g_ApduRespDesc[Poco::toUpper(Poco::trim(ss[0]))] = Poco::trim(ss[1]);
 			}
 		}
 
@@ -209,7 +239,7 @@ int _tmain(int argc, _TCHAR* argv [])
 			n = 0;
 			for ( auto i : g_Trns )
 			{
-				std::cout << "[" << ++n << "] " << i.Apdu() << " {" << i.ApduDescr() << "}, " << i.GetTrnTime() << "ms => " << i.ApduResp() << std::endl;
+				std::cout << "[" << ++n << "] " << i.Apdu() << " {" << i.ApduDescr() << "}, " << i.GetTrnTime() << "ms => " << i.ApduResp() << " {" << i.ApduRespDesc()  << "}" << std::endl;
 			}
 		}
 	}
@@ -223,4 +253,3 @@ int _tmain(int argc, _TCHAR* argv [])
 	}
 	return 0;
 }
-
