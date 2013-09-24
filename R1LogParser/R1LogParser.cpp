@@ -15,6 +15,7 @@
 
 std::map<std::string, std::string> g_ApduCmdDesc;
 std::map<std::string, std::string> g_ApduRespDesc;
+std::map<std::string, unsigned int> g_ApduCmdRepeating;
 
 class Trn
 {
@@ -58,6 +59,7 @@ public:
 			if ( is_out_apdu )
 			{
 				m_ApduCmd = Poco::toUpper(apdu);
+				++g_ApduCmdRepeating[m_ApduCmd];
 				auto t = g_ApduCmdDesc.find(m_ApduCmd.substr(2, 2));
 				if ( t != g_ApduCmdDesc.end() )
 					m_ApduCmdDescr = t->second;
@@ -68,7 +70,7 @@ public:
 
 				if ( m_ApduResp.size() >= 4 )
 				{
-					auto t = g_ApduRespDesc.find(m_ApduResp.substr(m_ApduResp.size()-4));
+					auto t = g_ApduRespDesc.find(m_ApduResp.substr(m_ApduResp.size() - 4));
 					if ( t != g_ApduRespDesc.end() )
 						m_ApduRespDescr = t->second;
 					else
@@ -176,8 +178,14 @@ int _tmain(int argc, _TCHAR* argv [])
 		std::string card_begin_trn;
 		std::string card_end_trn;
 		{
+			std::string path_to_process = argv[0];
+			auto i = path_to_process.find('.');
+
+			if ( i != std::string::npos )
+				path_to_process.erase(i+1);
+
 			Poco::AutoPtr<Poco::Util::PropertyFileConfiguration> conf;
-			conf = new Poco::Util::PropertyFileConfiguration("R1LogParser.properties");
+			conf = new Poco::Util::PropertyFileConfiguration(path_to_process + "properties");
 
 			card_begin_trn = conf->getString("CardTrnBegin");
 			card_end_trn = conf->getString("CardTrnEnd");
@@ -217,8 +225,17 @@ int _tmain(int argc, _TCHAR* argv [])
 
 		if ( !g_Trns.empty() )
 		{
+			auto rep_it = g_ApduCmdRepeating.begin();
+			while ( rep_it != g_ApduCmdRepeating.end() )
+			{
+				if ( rep_it->second == 1 )
+					rep_it = g_ApduCmdRepeating.erase(rep_it);
+				else
+					++rep_it;
+			}
+
 			std::chrono::milliseconds total_time(g_Trns.back().GetPrevTrnTime(g_Trns.front()));
-			std::chrono::seconds total_time_in_s((total_time/1000).count());
+			std::chrono::seconds total_time_in_s((total_time / 1000).count());
 			std::cout << "Total trn time: " << total_time.count() << "ms, or " << total_time_in_s.count() << "s" << std::endl << std::endl;
 
 			std::cout << "Timings: " << std::endl;
@@ -233,19 +250,29 @@ int _tmain(int argc, _TCHAR* argv [])
 					std::cout << "[" << ++n << "] " << "->" << i->GetPrevTrnTime(*prev) << "ms, " << i->GetTrnTime() << "ms" << std::endl;
 				prev = i;
 			}
+			std::cout << std::endl << std::endl;
+
+			std::cout << "Repeating: " << std::endl;
+
+			for ( auto const& i : g_ApduCmdRepeating )
+				std::cout << i.first << "=" << i.second << std::endl;
 
 			std::cout << std::endl << std::endl;
 			std::cout << "Trns: " << std::endl;
 			n = 0;
 			for ( auto i : g_Trns )
 			{
-				std::cout << "[" << ++n << "] " << i.Apdu() << " {" << i.ApduDescr() << "}, " << i.GetTrnTime() << "ms => " << i.ApduResp() << " {" << i.ApduRespDesc()  << "}" << std::endl;
+				std::cout << "[" << ++n << "] " << i.Apdu() << " {" << i.ApduDescr() << "}, " << i.GetTrnTime() << "ms => " << i.ApduResp() << " {" << i.ApduRespDesc() << "}" << std::endl;
 			}
 		}
 	}
+	catch ( Poco::FileNotFoundException ex )
+	{
+		std::cout << "Configuration file: '" << ex.message() << "' not found. Terminate application." << std::endl;
+	}
 	catch ( Poco::NotFoundException ex )
 	{
-		std::cout << "Bad configuration. Missing property: " << ex.message() << std::endl;
+		std::cout << "Bad configuration. Missing property: " << ex.message() << ". Terminate application." << std::endl;
 	}
 	catch ( std::exception ex )
 	{
